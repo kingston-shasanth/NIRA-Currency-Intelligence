@@ -202,7 +202,13 @@ export const ScanPage: React.FC = () => {
           audioFeedback.playErrorChime();
           setPrediction(result);
           setScannerState('rejected');
-          announceResult(result.predicted_denomination, true, result.confidence, result.currency_type);
+          announceResult(
+            result.predicted_denomination,
+            true,
+            result.confidence,
+            result.currency_type,
+            result.guidance_message
+          );
           return;
         }
 
@@ -226,7 +232,13 @@ export const ScanPage: React.FC = () => {
 
         // Delay speech 300ms after chime so Android TTS doesn't clip opening phonemes
         setTimeout(() => {
-          announceResult(result.predicted_denomination, false, result.confidence, result.currency_type);
+          announceResult(
+            result.predicted_denomination,
+            false,
+            result.confidence,
+            result.currency_type,
+            result.guidance_message
+          );
         }, 300);
       } catch (err: any) {
         audioFeedback.playErrorChime();
@@ -326,7 +338,8 @@ export const ScanPage: React.FC = () => {
       prediction.predicted_denomination,
       isRejected,
       prediction.confidence,
-      prediction.currency_type
+      prediction.currency_type,
+      prediction.guidance_message
     );
   };
 

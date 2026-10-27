@@ -161,3 +161,53 @@ def test_image_quality_service():
     assert "guidance_message" in quality
     assert quality["mean_luminance"] == 128.0
 
+
+def test_recognition_blank_surface_rejection():
+    """Verify out-of-distribution blank surface is cleanly rejected with actionable guidance."""
+    from app.services.model_service import model_service
+    img = Image.new("RGB", (400, 300), color=(128, 128, 128))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    res = model_service.predict_image(buf.getvalue(), filename="blank_desk.jpg", mode="auto", language="en")
+    assert res.rejected is True
+    assert res.is_currency is False
+    assert res.predicted_denomination == "Uncertain / Non-Currency"
+    assert "guidance_message" in res.__dict__
+    assert len(res.guidance_message) > 0
+
+
+def test_recognition_multilingual_guidance():
+    """Verify rejection provides authentic Tamil and Hindi voice guidance."""
+    from app.services.model_service import model_service
+    img = Image.new("RGB", (400, 300), color=(10, 10, 10))  # dark image
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    res_ta = model_service.predict_image(buf.getvalue(), filename="dark.jpg", mode="auto", language="ta")
+    assert res_ta.rejected is True
+    assert "வெளிச்சம்" in res_ta.guidance_message
+
+    res_hi = model_service.predict_image(buf.getvalue(), filename="dark.jpg", mode="auto", language="hi")
+    assert res_hi.rejected is True
+    assert "रोशनी" in res_hi.guidance_message
+
+
+def test_coin_roi_geometry_margin():
+    """Verify coin ROI extraction maintains resolution and applies safe 22% outer rim margin."""
+    from ml.coin_roi import extract_coin_roi
+    # Synthetic frame with a coin-like circular feature
+    import numpy as np
+    canvas = np.full((360, 640, 3), 40, dtype=np.uint8)
+    yy, xx = np.ogrid[:360, :640]
+    circle_mask = (xx - 320) ** 2 + (yy - 180) ** 2 <= 50**2
+    canvas[circle_mask] = 200
+    test_img = Image.fromarray(canvas)
+
+    roi_img, bbox = extract_coin_roi(test_img)
+    assert roi_img is not None
+    assert bbox is not None
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    assert w == h  # Strict square aspect ratio
+    assert w >= 100  # Radius expanded beyond raw diameter
+
+

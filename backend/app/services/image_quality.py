@@ -122,7 +122,11 @@ def assess_image_quality(
         center_sat = float(np.mean(center_patch > 250))
         global_sat = float(np.mean(thumb_arr > 250))
 
-        if center_sat > 0.10 or global_sat > 0.15:
+        # Calibrated specular reflection thresholds: metallic coins naturally exhibit localized relief reflections
+        sat_center_limit = 0.28 if expected_mode == "coin" else 0.18
+        sat_global_limit = 0.30 if expected_mode == "coin" else 0.22
+
+        if center_sat > sat_center_limit or global_sat > sat_global_limit:
             is_too_bright = True
 
     is_poorly_lit = is_too_dark or is_too_bright
@@ -146,7 +150,8 @@ def assess_image_quality(
 
     # Candidate evaluation rules:
     # - Completely dark or blown out has no candidate
-    # - Low edge density with zero spatial heterogeneity indicates empty desk or uniform surface
+    # - Low edge density with low spatial heterogeneity indicates empty desk or uniform surface
+    # - Low spatial heterogeneity with high edge density indicates uniform high-frequency camera noise
     # - High skin ratio with low spatial heterogeneity indicates hand/skin occluding the frame
     # - Blurry with zero edges indicates empty frame
     has_candidate = True
@@ -164,7 +169,10 @@ def assess_image_quality(
     elif skin_ratio > 0.75 and spatial_hetero < 6.0:
         has_candidate = False
         candidate_reason = "hand_skin_dominant"
-    elif spatial_hetero < 4.5 and edge_density < 0.035:
+    elif spatial_hetero < 2.0 and edge_density > 0.30:
+        has_candidate = False
+        candidate_reason = "sensor_noise_no_structure"
+    elif spatial_hetero < 4.0 and edge_density < 0.022:
         has_candidate = False
         candidate_reason = "uniform_surface_no_currency"
     elif edge_density < 0.012 and color_std < 10.0:
@@ -199,10 +207,14 @@ def assess_image_quality(
         guidance_en = "Hand is blocking the view. Hold currency clearly in front of camera."
         guidance_ta = "கை பார்வையை மறைக்கிறது. பணத்தை கேமரா முன் தெளிவாகப் பிடிக்கவும்."
         guidance_hi = "हाथ दृश्य को रोक रहा है। मुद्रा को कैमरे के सामने स्पष्ट रूप से रखें।"
-    elif candidate_reason == "uniform_surface_no_currency":
-        guidance_en = "Empty surface detected. Place a currency note or coin within the frame."
-        guidance_ta = "வெற்று மேற்பரப்பு. நோட்டு அல்லது நாணயத்தை சட்டத்திற்குள் வைக்கவும்."
-        guidance_hi = "खाली सतह का पता चला। फ्रेम के भीतर एक नोट या सिक्का रखें।"
+    elif candidate_reason in ("uniform_surface_no_currency", "blank_featureless_frame"):
+        guidance_en = "No currency detected. Place note or coin clearly in view and scan again."
+        guidance_ta = "பணம் எதுவும் காணப்படவில்லை. நோட்டு அல்லது நாணயத்தை கேமரா முன் வைத்து மீண்டும் ஸ்கேன் செய்யவும்."
+        guidance_hi = "कोई मुद्रा नहीं मिली। नोट या सिक्के को कैमरे के सामने रखकर दोबारा स्कैन करें।"
+    elif candidate_reason == "sensor_noise_no_structure":
+        guidance_en = "Camera sensor static detected. Please point camera steadily at the currency."
+        guidance_ta = "கேமரா நிலைத்தன்மை இல்லை. கேமராவை பணத்தின் மீது நிலையாகப் பிடிக்கவும்."
+        guidance_hi = "कैमरा स्थिर नहीं है। कृपया कैमरे को मुद्रा पर स्थिर रखें।"
     elif not has_candidate:
         guidance_en = "I cannot identify a currency note or coin yet. Please point the camera at the currency and hold steady."
         guidance_ta = "பணம் அல்லது நாணயத்தை கேமரா முன் நிலையாகப் பிடிக்கவும்."

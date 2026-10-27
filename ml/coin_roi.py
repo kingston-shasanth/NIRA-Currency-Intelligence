@@ -119,8 +119,8 @@ def extract_coin_roi(
     est_diameter = max(x_max - x_min, y_max - y_min)
     est_radius = max(est_diameter / 2.0, 14.0)
 
-    # Optimal 12% margin around the outer rim to avoid clipping reliefs without diluting details
-    box_radius = est_radius * 1.12
+    # Optimal 22% margin around the outer rim so subsequent CenterCrop(224) preserves rim relief and edge beads
+    box_radius = est_radius * 1.22
 
     orig_cx = cand_cx / scale
     orig_cy = cand_cy / scale

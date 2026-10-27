@@ -45,6 +45,7 @@ interface SettingsContextType {
     isRejected?: boolean,
     confidence?: number,
     currencyType?: string,
+    guidanceMessage?: string,
     onEnd?: () => void
   ) => void;
   announceResult: (
@@ -52,6 +53,7 @@ interface SettingsContextType {
     isRejected?: boolean,
     confidence?: number,
     currencyType?: string,
+    guidanceMessage?: string,
     onEnd?: () => void
   ) => void;
   isVoiceAvailableForLang: (langCode: string) => boolean;
@@ -373,6 +375,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isRejected: boolean = false,
       confidence?: number,
       currencyType?: string,
+      guidanceMessage?: string,
       onEnd?: () => void
     ) => {
       const lang = settings.speechLanguage;
@@ -380,7 +383,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (isRejected) {
         triggerVibration('warning');
-        speak(phrases.rejectedGuidance, lang, onEnd);
+        speak(guidanceMessage || phrases.rejectedGuidance, lang, onEnd);
         return;
       }
 
@@ -404,9 +407,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isRejected: boolean = false,
       confidence?: number,
       currencyType?: string,
+      guidanceMessage?: string,
       onEnd?: () => void
     ) => {
-      announceResult(denomination, isRejected, confidence, currencyType, onEnd);
+      announceResult(denomination, isRejected, confidence, currencyType, guidanceMessage, onEnd);
     },
     [announceResult]
   );

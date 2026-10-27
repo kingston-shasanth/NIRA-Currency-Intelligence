@@ -157,8 +157,12 @@ class ModelService:
         # Coins in realistic camera captures occupy 20-50% of the frame and suffer from aspect-ratio
         # squashing and detail dilution if uncropped. When coin mode is selected, or when an initial
         # scan indicates a coin candidate or ambiguous evidence, coin-specific ROI extraction is invoked.
+        # 4. Multi-stage Classification with Bounded Candidate Refinement
+        # Banknotes occupy 70-90% of the frame and are evaluated directly on the full image.
+        # Coins in realistic camera captures occupy 20-50% of the frame and benefit from
+        # resolution-preserving ROI extraction.
         if mode == "banknote":
-            # Explicit Banknote mode: 100% baseline banknote path
+            # Explicit Banknote mode: direct full-frame evaluation
             result = self._classifier.predict(image, generate_cam=generate_gradcam)
             active_quality = quality_report
         elif mode == "coin":
@@ -173,9 +177,10 @@ class ModelService:
             base_conf = base_result["confidence"]
             base_logit = base_result.get("max_logit", 10.0)
             base_is_coin = "coin" in base_denom.lower()
+            base_margin = round(base_conf - (base_result["alternatives"][0]["score"] if base_result["alternatives"] else 0.0), 4)
 
-            if not base_is_coin and base_conf >= 0.80 and base_logit >= 6.0:
-                # Confirmed High-Confidence Banknote: 100% baseline path preserved
+            if not base_is_coin and base_conf >= 0.75 and base_logit >= 4.0 and base_margin >= 0.15:
+                # Confirmed High-Confidence Banknote
                 if generate_gradcam:
                     result = self._classifier.predict(image, generate_cam=True)
                 else:
@@ -185,15 +190,17 @@ class ModelService:
                 # Coin candidate or uncertain full-frame evidence: Run isolated coin ROI extraction
                 coin_result = self._classifier.predict_coin(image, generate_cam=generate_gradcam)
                 coin_denom = coin_result["predicted_denomination"]
+                coin_conf = coin_result["confidence"]
                 coin_logit = coin_result.get("max_logit", 10.0)
                 coin_is_coin = "coin" in coin_denom.lower()
+                coin_margin = round(coin_conf - (coin_result["alternatives"][0]["score"] if coin_result["alternatives"] else 0.0), 4)
                 coin_roi_img = coin_result.get("coin_roi_image", image)
 
-                # If coin ROI confirms a coin with genuine evidence (logit >= 6.0):
-                if coin_is_coin and coin_logit >= 6.0:
+                # If coin ROI confirms a coin with genuine evidence:
+                if coin_is_coin and coin_conf >= 0.75 and coin_logit >= 4.0 and coin_margin >= 0.15:
                     result = coin_result
                     active_quality = assess_image_quality(coin_roi_img, expected_mode="coin", language=language)
-                elif not base_is_coin and base_logit >= 6.0:
+                elif not base_is_coin and base_logit >= 4.0 and base_conf >= 0.70:
                     # Fallback to base banknote if base logit was valid
                     if generate_gradcam:
                         result = self._classifier.predict(image, generate_cam=True)
@@ -226,18 +233,38 @@ class ModelService:
         # Calculate prediction margin (Top-1 score minus Top-2 score)
         second_conf = alts[0]["score"] if alts else 0.0
         score_margin = round(conf - second_conf, 4)
-
-        # 5. Genuine Currency Candidate & Out-of-Distribution Rejection Gate
-        # A conventional softmax classifier will choose a currency class even on hands, walls, or random objects.
-        # We reject when:
-        # A) Image quality analysis found no structural currency candidate (blank surface, extreme glare, dark, blur, hands, uniform surface)
-        # B) Pre-softmax logit evidence is insufficient (< 6.0 indicates out-of-distribution textures where model features did not activate)
-        # C) Overall confidence is below 0.50
-        # D) Model is uncertain / top margin is ambiguous (< 0.18 margin with < 0.72 top confidence)
-        # E) User explicitly selected banknote or coin mode, but detection contradicts mode with low certainty
-        has_candidate = active_quality.get("has_currency_candidate", True)
         max_logit = result.get("max_logit", 10.0)
-        is_mode_conflict = (mode == "banknote" and is_coin and conf < 0.85) or (mode == "coin" and not is_coin and conf < 0.85)
+
+        # 5. Bounded Candidate Refinement for Marginal / Ambiguous Captures
+        # If confidence or score margin is on the borderline on an elongated capture,
+        # test a single bounded center-square crop before declaring uncertainty
+        if (conf < 0.70 or score_margin < 0.16) and active_quality.get("has_currency_candidate", True):
+            w, h = image.size
+            aspect = max(w, h) / max(min(w, h), 1)
+            if aspect > 1.25:
+                side = min(w, h)
+                x1 = (w - side) // 2
+                y1 = (h - side) // 2
+                center_crop_img = image.crop((x1, y1, x1 + side, y1 + side))
+                retry_res = self._classifier.predict(center_crop_img, generate_cam=False)
+                retry_conf = retry_res["confidence"]
+                retry_logit = retry_res.get("max_logit", 0.0)
+                retry_margin = round(retry_conf - (retry_res["alternatives"][0]["score"] if retry_res["alternatives"] else 0.0), 4)
+
+                if retry_conf > conf and retry_conf >= 0.72 and retry_logit >= 4.0 and retry_margin >= 0.15:
+                    result = retry_res
+                    pred_denom = result["predicted_denomination"]
+                    conf = result["confidence"]
+                    alts = result["alternatives"]
+                    second_conf = alts[0]["score"] if alts else 0.0
+                    score_margin = round(conf - second_conf, 4)
+                    max_logit = retry_logit
+                    is_coin = "coin" in pred_denom.lower()
+                    currency_type = "coin" if is_coin else "banknote"
+
+        # 6. Genuine Currency Candidate & Calibrated Uncertainty Gate
+        has_candidate = active_quality.get("has_currency_candidate", True)
+        is_mode_conflict = (mode == "banknote" and is_coin and conf < 0.80) or (mode == "coin" and not is_coin and conf < 0.80)
 
         is_rejected = False
         rejection_reason = None
@@ -245,13 +272,13 @@ class ModelService:
         if not has_candidate:
             is_rejected = True
             rejection_reason = active_quality.get("candidate_reason") or "no_currency_candidate_detected"
-        elif max_logit < 6.0:
+        elif max_logit < 3.8:
             is_rejected = True
             rejection_reason = "insufficient_currency_evidence"
         elif conf < 0.50:
             is_rejected = True
             rejection_reason = "low_confidence_below_threshold"
-        elif conf < 0.72 and score_margin < 0.18:
+        elif conf < 0.55 and score_margin < 0.12:
             is_rejected = True
             rejection_reason = "ambiguous_inter_class_entropy"
         elif is_mode_conflict:
@@ -260,23 +287,75 @@ class ModelService:
 
         is_low = conf < 0.70 or is_rejected
 
+        # Synthesize concise, actionable voice guidance
+        guidance_map = {
+            "insufficient_illumination": {
+                "en": "Lighting is too dark. Turn on torch or move to brighter light.",
+                "ta": "வெளிச்சம் குறைவாக உள்ளது. டார்ச்சை ஆன் செய்யவும் அல்லது வெளிச்சத்திற்கு வரவும்.",
+                "hi": "रोशनी बहुत कम है। टॉर्च चालू करें या रोशनी में आएं।",
+            },
+            "excessive_glare": {
+                "en": "Too much glare on currency surface. Tilt phone slightly to reduce glare.",
+                "ta": "அதிக வெளிச்சம் அல்லது பிரதிபலிப்பு உள்ளது. போனை லேசாக சாய்க்கவும்.",
+                "hi": "नोट पर बहुत तेज चमक है। फोन को थोड़ा झुकाएं।",
+            },
+            "blurry_no_edges": {
+                "en": "Image is blurry. Hold phone steady and scan again.",
+                "ta": "படம் தெளிவாக இல்லை. போனை அசைக்காமல் பிடித்து மீண்டும் எடுக்கவும்.",
+                "hi": "तस्वीर धुंधली है। फोन को स्थिर रखें और दोबारा प्रयास करें।",
+            },
+            "hand_skin_dominant": {
+                "en": "Hand is blocking the view. Hold currency clearly in front of camera.",
+                "ta": "கை பார்வையை மறைக்கிறது. பணத்தை கேமரா முன் தெளிவாகப் பிடிக்கவும்.",
+                "hi": "हाथ दृश्य को रोक रहा है। मुद्रा को कैमरे के सामने स्पष्ट रूप से रखें।",
+            },
+            "uniform_surface_no_currency": {
+                "en": "No currency detected. Place note or coin clearly in view and scan again.",
+                "ta": "பணம் எதுவும் காணப்படவில்லை. நோட்டு அல்லது நாணயத்தை கேமரா முன் வைத்து மீண்டும் ஸ்கேன் செய்யவும்.",
+                "hi": "कोई मुद्रा नहीं मिली। नोट या सिक्के को कैमरे के सामने रखकर दोबारा स्कैन करें।",
+            },
+            "blank_featureless_frame": {
+                "en": "No currency in view. Place note or coin in the center and scan again.",
+                "ta": "பணம் பார்வையில் இல்லை. பணத்தை நடுவில் வைத்து மீண்டும் ஸ்கேன் செய்யவும்.",
+                "hi": "कोई मुद्रा दिखाई नहीं दे रही है। नोट या सिक्के को केंद्र में रखकर दोबारा स्कैन करें।",
+            },
+            "sensor_noise_no_structure": {
+                "en": "Camera sensor static detected. Please point camera steadily at the currency.",
+                "ta": "கேமரா நிலைத்தன்மை இல்லை. கேமராவை பணத்தின் மீது நிலையாகப் பிடிக்கவும்.",
+                "hi": "कैमरा स्थिर नहीं है। कृपया कैमरे को मुद्रा पर स्थिर रखें।",
+            },
+            "uncertain_coin": {
+                "en": "Uncertain coin denomination. Hold phone closer to the coin and scan again.",
+                "ta": "நாணயத்தை உறுதிப்படுத்த முடியவில்லை. போனை நாணயத்திற்கு அருகில் பிடித்து மீண்டும் ஸ்கேன் செய்யவும்.",
+                "hi": "सिक्के की पहचान अनिश्चित है। फोन को सिक्के के पास लाकर दोबारा स्कैन करें।",
+            },
+            "uncertain_banknote": {
+                "en": "Uncertain banknote. Ensure the full note is visible and scan again.",
+                "ta": "நோட்டை உறுதிப்படுத்த முடியவில்லை. முழு நோட்டும் தெரியுமாறு வைத்து மீண்டும் ஸ்கேன் செய்யவும்.",
+                "hi": "नोट की पहचान अनिश्चित है। पूरा नोट कैमरे में दिखाएं और दोबारा स्कैन करें।",
+            },
+            "generic_uncertain": {
+                "en": "I couldn't identify a currency note or coin. Please place currency clearly in view and scan again.",
+                "ta": "பண நோட்டையோ நாணயத்தையோ அடையாளம் காண முடியவில்லை. தயவுசெய்து பணத்தைத் தெளிவாகக் காட்டி மீண்டும் ஸ்கேன் செய்யவும்.",
+                "hi": "मैं नोट या सिक्के की पहचान नहीं कर पाया। कृपया मुद्रा को साफ़ तरीके से दिखाएँ और दोबारा स्कैन करें।",
+            },
+        }
 
-        # Synthesize rejection voice guidance (aligned with Section 2.3)
-        rejection_guidance_en = "I couldn't identify a currency note or coin. Please place the currency clearly in view and tap the screen to scan again."
-        rejection_guidance_ta = "பண நோட்டையோ நாணயத்தையோ அடையாளம் காண முடியவில்லை. தயவுசெய்து பணத்தைத் தெளிவாகக் காட்டி, மீண்டும் ஸ்கேன் செய்யத் திரையைத் தட்டவும்."
-        rejection_guidance_hi = "मैं नोट या सिक्के की पहचान नहीं कर पाया। कृपया मुद्रा को साफ़ तरीके से दिखाएँ और दोबारा स्कैन करने के लिए स्क्रीन पर टैप करें।"
-        default_rejection_guidance = (
-            rejection_guidance_ta if language == "ta" else (rejection_guidance_hi if language == "hi" else rejection_guidance_en)
-        )
+        def get_guidance(key: str) -> str:
+            sub = guidance_map.get(key, guidance_map["generic_uncertain"])
+            return sub.get(language, sub["en"])
 
         if is_rejected:
-            # Prefer specific actionable guidance from candidate gate if available
-            if active_quality.get("guidance_message") and not active_quality.get("has_currency_candidate", True):
+            if rejection_reason in guidance_map:
+                effective_guidance = get_guidance(rejection_reason)
+            elif rejection_reason in ("insufficient_currency_evidence", "ambiguous_inter_class_entropy", "low_confidence_below_threshold"):
+                effective_guidance = get_guidance("uncertain_coin" if currency_type == "coin" else "uncertain_banknote")
+            elif active_quality.get("guidance_message") and not has_candidate:
                 effective_guidance = active_quality["guidance_message"]
             else:
-                effective_guidance = default_rejection_guidance
+                effective_guidance = get_guidance("generic_uncertain")
         else:
-            effective_guidance = active_quality["guidance_message"]
+            effective_guidance = active_quality.get("guidance_message") or "Currency framed properly."
 
         effective_denom = "Uncertain / Non-Currency" if is_rejected else pred_denom
 
