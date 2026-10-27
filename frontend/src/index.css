@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-heading: 'Outfit', sans-serif;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* NIRA Sovereign Viewfinder Identity Tokens */
+    /* Mobile Dark (Graphite, Warm Ivory, Sovereign Gold, Forest Green) */
+    --color-nira-dark: #111417;           /* Mobile Canvas Base */
+    --color-nira-darker: #0B0D0F;
+    --color-nira-graphite: #111417;
+    --color-nira-graphite-surface: #181C20;
+    --color-nira-graphite-card: #181C20;  /* Mobile Card Background */
+    --color-nira-graphite-border: #2D343E;/* Slate Border */
+    --color-nira-surface: #181C20;
+    --color-nira-card: #181C20;
+    --color-nira-border: #2D343E;
+    --color-nira-primary: #D4AF37;        /* Sovereign Gold Accent */
+    --color-nira-gold: #D4AF37;
+    --color-nira-champagne: #E8DFC8;      /* Champagne Ivory */
+    --color-nira-ivory: #F5EFEB;          /* High-Contrast Primary Text */
+    --color-text-primary: #F5EFEB;
+    --color-text-secondary: #E8DFC8;
+    --color-text-muted: #A0AAB5;
+
+    /* Forest Green Action System */
+    --color-nira-forest: #1B5E3F;         /* Primary Action Forest Green */
+    --color-nira-forest-light: #2E7D32;   /* Hover / Active Badge */
+    --color-nira-forest-subtle: #E8F5E9;  /* Desktop Pill Background */
+    --color-nira-accent: #1B5E3F;
+
+    /* Desktop Clean Workspace (Clinical Warm White, Light Gray, Deep Navy) */
+    --color-desktop-bg: #F8FAF9;
+    --color-desktop-card: #FFFFFF;
+    --color-desktop-border: #E5E9E7;
+    --color-desktop-navy: #0F1E28;
+    --color-desktop-subtext: #64748B;
+
+    /* Common Semantic Status Tokens */
+    --color-status-success: #1B5E3F;
+    --color-status-warning: #D97706;
+    --color-status-error: #DC2626;
+    --color-status-info: #2563EB;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--color-nira-dark);
+    color: var(--color-text-primary);
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-nira-dark);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Accessibility Text Size Scaling */
+  html.text-size-standard {
+    font-size: 16px;
+  }
+
+  html.text-size-large {
+    font-size: 18px;
+  }
+
+  html.text-size-xlarge {
+    font-size: 20px;
+  }
+
+  /* Accessible High Contrast Mode */
+  html.high-contrast {
+    --color-nira-dark: #000000;
+    --color-nira-darker: #000000;
+    --color-nira-surface: #000000;
+    --color-nira-card: #0A0A0A;
+    --color-nira-border: #FFFFFF;
+    --color-nira-primary: #D4AF37;
+    --color-nira-accent: #34D399;
+    --color-text-primary: #FFFFFF !important;
+    --color-text-secondary: #F5EFEB !important;
+    --color-text-muted: #CCCCCC !important;
+  }
+
+  html.high-contrast * {
+    border-color: #FFFFFF !important;
+  }
+
+  html.high-contrast button,
+  html.high-contrast a,
+  html.high-contrast input {
+    outline-width: 2px !important;
+  }
+
+  /* Accessible Focus Rings */
+  *:focus-visible {
+    outline: 3px solid var(--color-nira-primary);
+    outline-offset: 2px;
+  }
+
+  /* Reduced Motion Mode */
+  html.reduced-motion *,
+  html.reduced-motion *::before,
+  html.reduced-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessible Touch Targets (WCAG AAA minimum 48px) */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Safe area insets for mobile cutouts & gestures */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+}
+
+.pt-safe {
+  padding-top: calc(env(safe-area-inset-top, 12px) + 8px);
+}
+
+.pl-safe {
+  padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+}
+
+.pr-safe {
+  padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+}
+
+/* Restrained Dark Graphite scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111417;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232931;
+  border-radius: 4px;
+  border: 1px solid #2D343E;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1B5E3F;
+}
+
+/* ==========================================================================
+   CAMERA & SCANNER ANIMATIONS
+   ========================================================================== */
+
+@keyframes laserSweep {
+  0% {
+    top: 4%;
+    opacity: 0.35;
+  }
+  50% {
+    top: 92%;
+    opacity: 0.95;
+  }
+  100% {
+    top: 4%;
+    opacity: 0.35;
+  }
+}
+
+@keyframes reticleGlow {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.008);
+  }
+}
+
+@keyframes pulseGoldRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(212, 175, 55, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+}
+
+@keyframes sheetSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sovereign Gold Laser Sweep */
+.scanner-laser {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #D4AF37 25%, #E8DFC8 50%, #D4AF37 75%, transparent 100%);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.75), 0 0 24px rgba(232, 223, 200, 0.45);
+  animation: laserSweep 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 15;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanner-laser {
+    animation: none;
+    opacity: 0.6;
+    top: 50%;
+  }
+}
+
+.reticle-pulse {
+  animation: reticleGlow 3s ease-in-out infinite;
+}
+
+.shutter-ring {
+  animation: pulseGoldRing 2s infinite;
+}
+
+.sheet-slide-up {
+  animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glass & Card elements matching NIRA Sovereign Theme */
+.glass-pill {
+  background: rgba(24, 28, 32, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(45, 52, 62, 0.8);
+  color: #F5EFEB;
+}
+
+.glass-card {
+  background: rgba(24, 28, 32, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid #2D343E;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.nira-card {
+  background-color: #181C20;
+  border: 1px solid #2D343E;
+  border-radius: 1.25rem;
+}
+
+.nira-card:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+}

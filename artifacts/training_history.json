@@ -1,0 +1,122 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 0.5897,
+    "train_accuracy": 79.76,
+    "val_loss": 0.1343,
+    "val_accuracy": 96.48,
+    "lr": 9.8e-05,
+    "epoch_seconds": 141.8,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 2,
+    "train_loss": 0.1305,
+    "train_accuracy": 95.2,
+    "val_loss": 0.1532,
+    "val_accuracy": 94.72,
+    "lr": 9.3e-05,
+    "epoch_seconds": 82.98,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 3,
+    "train_loss": 0.0838,
+    "train_accuracy": 97.09,
+    "val_loss": 0.052,
+    "val_accuracy": 98.16,
+    "lr": 8.6e-05,
+    "epoch_seconds": 71.37,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 4,
+    "train_loss": 0.0657,
+    "train_accuracy": 97.61,
+    "val_loss": 0.048,
+    "val_accuracy": 98.49,
+    "lr": 7.5e-05,
+    "epoch_seconds": 98.22,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 5,
+    "train_loss": 0.0538,
+    "train_accuracy": 98.0,
+    "val_loss": 0.0413,
+    "val_accuracy": 98.74,
+    "lr": 6.3e-05,
+    "epoch_seconds": 128.46,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 6,
+    "train_loss": 0.0284,
+    "train_accuracy": 99.0,
+    "val_loss": 0.0294,
+    "val_accuracy": 98.99,
+    "lr": 5e-05,
+    "epoch_seconds": 90.19,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 7,
+    "train_loss": 0.0237,
+    "train_accuracy": 99.05,
+    "val_loss": 0.0316,
+    "val_accuracy": 98.74,
+    "lr": 3.8e-05,
+    "epoch_seconds": 91.89,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 8,
+    "train_loss": 0.0138,
+    "train_accuracy": 99.57,
+    "val_loss": 0.0205,
+    "val_accuracy": 99.08,
+    "lr": 2.6e-05,
+    "epoch_seconds": 86.02,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 9,
+    "train_loss": 0.01,
+    "train_accuracy": 99.63,
+    "val_loss": 0.0207,
+    "val_accuracy": 99.16,
+    "lr": 1.5e-05,
+    "epoch_seconds": 71.25,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 10,
+    "train_loss": 0.0087,
+    "train_accuracy": 99.66,
+    "val_loss": 0.0197,
+    "val_accuracy": 99.25,
+    "lr": 8e-06,
+    "epoch_seconds": 83.51,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 11,
+    "train_loss": 0.0096,
+    "train_accuracy": 99.68,
+    "val_loss": 0.018,
+    "val_accuracy": 99.25,
+    "lr": 3e-06,
+    "epoch_seconds": 79.58,
+    "peak_vram_mb": 383.0
+  },
+  {
+    "epoch": 12,
+    "train_loss": 0.0076,
+    "train_accuracy": 99.66,
+    "val_loss": 0.0198,
+    "val_accuracy": 99.25,
+    "lr": 1e-06,
+    "epoch_seconds": 88.99,
+    "peak_vram_mb": 383.0
+  }
+]

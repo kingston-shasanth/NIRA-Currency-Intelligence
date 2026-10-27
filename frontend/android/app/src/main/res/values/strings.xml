@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NIRA</string>
+    <string name="title_activity_main">NIRA</string>
+    <string name="package_name">ai.drishti.currency</string>
+    <string name="custom_url_scheme">ai.drishti.currency</string>
+</resources>

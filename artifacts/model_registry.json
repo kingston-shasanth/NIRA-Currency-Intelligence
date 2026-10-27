@@ -1,0 +1,30 @@
+{
+  "active_model": "D:\\NIRA AI — Accessible Currency Intelligence\\artifacts\\best_model.pth",
+  "active_version": "v1.0.0",
+  "architecture": "ResNet-18",
+  "updated_at": "2026-10-23T13:08:11.322031+00:00",
+  "history": [
+    {
+      "version": "v1.0.0",
+      "checkpoint": "D:\\NIRA AI — Accessible Currency Intelligence\\artifacts\\best_model.pth",
+      "architecture": "ResNet-18",
+      "best_val_accuracy": 99.25,
+      "classes": [
+        "25 Paisa Coin",
+        "50 Paisa Coin",
+        "\u20b91 Coin",
+        "\u20b910",
+        "\u20b910 Coin",
+        "\u20b9100",
+        "\u20b92 Coin",
+        "\u20b920",
+        "\u20b920 Coin",
+        "\u20b9200",
+        "\u20b92000",
+        "\u20b95 Coin",
+        "\u20b950",
+        "\u20b9500"
+      ]
+    }
+  ]
+}

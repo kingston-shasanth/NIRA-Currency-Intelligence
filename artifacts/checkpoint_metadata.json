@@ -1,0 +1,30 @@
+{
+  "model_name": "drishti_resnet_18_inr_v1",
+  "architecture": "ResNet-18",
+  "device": "cuda:0",
+  "gpu_name": "NVIDIA GeForce RTX 2050",
+  "peak_vram_mb": 383.0,
+  "best_epoch": 11,
+  "best_val_accuracy": 99.25,
+  "best_val_loss": 0.018,
+  "total_training_seconds": 1115.1,
+  "total_epochs_run": 12,
+  "classes": [
+    "25 Paisa Coin",
+    "50 Paisa Coin",
+    "\u20b91 Coin",
+    "\u20b910",
+    "\u20b910 Coin",
+    "\u20b9100",
+    "\u20b92 Coin",
+    "\u20b920",
+    "\u20b920 Coin",
+    "\u20b9200",
+    "\u20b92000",
+    "\u20b95 Coin",
+    "\u20b950",
+    "\u20b9500"
+  ],
+  "num_classes": 14,
+  "timestamp": "2026-10-23T13:08:11.321410+00:00"
+}
